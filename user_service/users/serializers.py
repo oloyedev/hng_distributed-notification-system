@@ -37,6 +37,10 @@ class CreateUserSerializer(serializers.ModelSerializer):
         user.set_password(validated_data['password'])
         user.save()
         return user
+class LoginUserSerializer(serializers.Serializer):
+    ##define fields for login serializer for swagger documentation
+    email = serializers.EmailField(write_only=True, required=True)
+    password = serializers.CharField(write_only=True, required=True)
 
 class PushTokenUpdateSerializer(serializers.ModelSerializer):
     push_token = serializers.CharField(required=True)

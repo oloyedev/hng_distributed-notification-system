@@ -10,9 +10,12 @@ from .serializers import (
     CreateUserSerializer,
     UserDetailSerializer,
     PushTokenUpdateSerializer,
+    LoginUserSerializer
 )
+from drf_yasg.utils import swagger_auto_schema
 
 class CreateUserView(APIView):
+    
     """
     Request Body:{
       name: str
@@ -26,6 +29,12 @@ class CreateUserView(APIView):
         email: bool
         push: bool
     """
+    ##define swagger documentation fields for the create user endpoint
+    @swagger_auto_schema(
+        request_body=CreateUserSerializer,
+        responses={201: "User created successfully"}
+    )
+    
     def post(self, request):
         serializer = CreateUserSerializer(data=request.data)
         
@@ -43,6 +52,10 @@ class LoginUserView(APIView):
       password: str
     }
     """
+    ##define swagger documentation fields for the create user endpoint, a non generic api view with no serializer_class method
+    @swagger_auto_schema(
+        request_body=LoginUserSerializer, responses={201: "User created successfully"}
+    )
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')

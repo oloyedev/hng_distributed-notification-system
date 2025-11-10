@@ -38,6 +38,13 @@ class CreateUserSerializer(serializers.ModelSerializer):
         user.save()
         return user
 
+class PushTokenUpdateSerializer(serializers.ModelSerializer):
+    push_token = serializers.CharField(required=True)
+
+    class Meta:
+        model = User
+        fields = ('push_token', 'updated_at')
+
 
 class UserDetailSerializer(serializers.ModelSerializer):
     name = serializers.CharField(source='user_name')

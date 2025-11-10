@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from .managers import CustomUserManager
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenRefreshView
 # from django.utils.translation import gettext_lazy as _
 
 class User(AbstractBaseUser, PermissionsMixin):

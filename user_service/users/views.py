@@ -2,10 +2,16 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import CreateUserSerializer, UserDetailSerializer
 from .models import User
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import GenericAPIView
+from rest_framework_simplejwt.views import TokenRefreshView
+from .serializers import (
+    CreateUserSerializer,
+    UserDetailSerializer,
+    PushTokenUpdateSerializer,
+)
+
 class CreateUserView(APIView):
     """
     Request Body:{
@@ -63,4 +69,26 @@ class UserDetail(GenericAPIView):
     def get(self, request):
         user = User.objects.get(id=request.user.id)
         serializer = self.serializer_class(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PushTokenUpdateView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PushTokenUpdateSerializer
+
+    def patch(self, request):
+        user = User.objects.get(id=request.user.id)
+        push_token = request.data.get('push_token')
+
+        if not push_token:
+            return Response({"error": "Push token is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not isinstance(push_token, str):
+            return Response({"error": "Push token must be a string"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.push_token = push_token
+        user.save()
+        
+        serializer = self.serializer_class(user)
+        
         return Response(serializer.data, status=status.HTTP_200_OK)

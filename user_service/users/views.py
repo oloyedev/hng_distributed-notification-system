@@ -2,9 +2,10 @@ from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from .serializers import CreateUserSerializer
+from .serializers import CreateUserSerializer, UserDetailSerializer
 from .models import User
-
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import GenericAPIView
 class CreateUserView(APIView):
     """
     Request Body:{
@@ -53,3 +54,13 @@ class LoginUserView(APIView):
                 return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
         except User.DoesNotExist:
             return Response({"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class UserDetail(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserDetailSerializer
+
+    def get(self, request):
+        user = User.objects.get(id=request.user.id)
+        serializer = self.serializer_class(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)

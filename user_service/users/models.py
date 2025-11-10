@@ -6,7 +6,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 # from django.utils.translation import gettext_lazy as _
 
 class User(AbstractBaseUser, PermissionsMixin):
-    email = models.CharField(max_length=255, unique=True, blank=False, null=False)
+    email = models.EmailField(max_length=255, unique=True, blank=False, null=False)
     user_name = models.CharField(max_length=255)
     push_token = models.CharField(max_length=500, blank=True, null=True)
     preferences = models.JSONField(default=dict, blank=False, null=False)

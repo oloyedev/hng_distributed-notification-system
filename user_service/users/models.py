@@ -9,16 +9,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     email = models.CharField(max_length=255, unique=True, blank=False, null=False)
     user_name = models.CharField(max_length=255)
     push_token = models.CharField(max_length=500, blank=True, null=True)
-    email_notifications = models.BooleanField(default=True)
-    is_verified = models.BooleanField(default=True)
-    is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
+    preferences = models.JSONField(default=dict, blank=False, null=False)
+    
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
     objects = CustomUserManager()
     USERNAME_FIELD = 'email'
-    #REQUIRED_FIELDS = ['user_name']
+    REQUIRED_FIELDS = ['user_name']
     
     def __str__(self):
         return self.email

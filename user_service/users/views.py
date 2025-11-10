@@ -1,3 +1,28 @@
 from django.shortcuts import render
+from rest_framework.generics import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .serializers import CreateUserSerializer
 
-# Create your views here.
+
+class CreateUserView(APIView):
+    """
+    Request Body:{
+      name: str
+      email: Email
+      push_token: Optional[str]  # can be updated with an update endpoint
+      preferences: UserPreference
+      password: str
+    }
+
+    class UserPreference:
+        email: bool
+        push: bool
+    """
+    def post(self, request):
+        serializer = CreateUserSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({"message": "User created successfully"}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

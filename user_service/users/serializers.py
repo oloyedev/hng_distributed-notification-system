@@ -17,7 +17,7 @@ class CreateUserSerializer(serializers.ModelSerializer):
             email: bool
             push: bool
         """
-        preferences = attrs.get("prefeferences")
+        preferences = attrs.get("preferences")
         if preferences:
             if not isinstance(preferences, dict):
                 raise serializers.ValidationError("Preferences must be a dictionary")

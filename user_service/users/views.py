@@ -1,0 +1,107 @@
+from django.shortcuts import render
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from .models import User
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.generics import GenericAPIView
+from rest_framework_simplejwt.views import TokenRefreshView
+from .serializers import (
+    CreateUserSerializer,
+    UserDetailSerializer,
+    PushTokenUpdateSerializer,
+    LoginUserSerializer
+)
+from drf_yasg.utils import swagger_auto_schema
+
+class CreateUserView(APIView):
+    
+    """
+    Request Body:{
+      name: str
+      email: Email
+      push_token: Optional[str]  # can be updated with an update endpoint
+      preferences: UserPreference
+      password: str
+    }
+
+    class UserPreference:
+        email: bool
+        push: bool
+    """
+    ##define swagger documentation fields for the create user endpoint
+    @swagger_auto_schema(
+        request_body=CreateUserSerializer,
+        responses={201: "User created successfully"}
+    )
+    
+    def post(self, request):
+        serializer = CreateUserSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response({"message": f"User {user.email} created successfully"}, status=status.HTTP_201_CREATED)
+        
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class LoginUserView(APIView):
+    """
+    Request Body:{
+      email: Email
+      password: str
+    }
+    """
+    ##define swagger documentation fields for the create user endpoint, a non generic api view with no serializer_class method
+    @swagger_auto_schema(
+        request_body=LoginUserSerializer, responses={201: "User created successfully"}
+    )
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        try:
+            user = User.objects.get(email=email)
+            if user.check_password(password):
+                tokens = user.tokens()
+                return Response(
+                    {
+                        "access_tokens": tokens["access"],
+                        "refresh_token": tokens["refresh"]
+                    }, status=status.HTTP_200_OK)
+            else:
+                return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+        except User.DoesNotExist:
+            return Response({"error": "User does not exist"}, status=status.HTTP_404_NOT_FOUND)
+
+
+class UserDetail(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserDetailSerializer
+
+    def get(self, request):
+        user = User.objects.get(id=request.user.id)
+        serializer = self.serializer_class(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class PushTokenUpdateView(GenericAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PushTokenUpdateSerializer
+
+    def patch(self, request):
+        user = User.objects.get(id=request.user.id)
+        push_token = request.data.get('push_token')
+
+        if not push_token:
+            return Response({"error": "Push token is required"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not isinstance(push_token, str):
+            return Response({"error": "Push token must be a string"}, status=status.HTTP_400_BAD_REQUEST)
+        
+        user.push_token = push_token
+        user.save()
+        
+        serializer = self.serializer_class(user)
+        
+        return Response(serializer.data, status=status.HTTP_200_OK)

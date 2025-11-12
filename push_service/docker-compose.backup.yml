@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  push-service:
+    build: .
+    container_name: push-service
+    ports:
+      - "8003:8003"
+    environment:
+      - SERVICE_NAME=push-service
+      - ENVIRONMENT=production
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672  # Inside Docker network, it's 5672
+      - RABBITMQ_USER=api_user
+      - RABBITMQ_PASSWORD=StrongPassword123
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - API_GATEWAY_URL=http://api-gateway:8000
+      - LOG_LEVEL=INFO
+      - FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
+    volumes:
+      - ./firebase-credentials.json:/app/firebase-credentials.json:ro
+    depends_on:
+      - redis
+    restart: unless-stopped
+    networks:
+      - notification-network
+
+  # Redis (for local testing)
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - notification-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  redis_data:
+
+networks:
+  notification-network:
+    name: notification-network
+    external: true  # Connect to existing network with RabbitMQ

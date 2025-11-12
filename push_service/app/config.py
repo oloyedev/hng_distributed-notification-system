@@ -1,59 +1,59 @@
-from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
     # Service Info
-    service_name: str = "push-service"
-    service_version: str = "1.0.0"
-    environment: str = "development"
+    service_name: str 
+    service_version: str
+    environment: str 
     
     # API Settings
-    api_host: str = "0.0.0.0"
-    api_port: int = 8003
+    api_host: str 
+    api_port: int 
     
     # RabbitMQ Configuration
-    rabbitmq_host: str = "localhost"
-    rabbitmq_port: int = 5672
-    rabbitmq_user: str = "guest"
-    rabbitmq_password: str = "guest"
-    rabbitmq_vhost: str = "/"
-    rabbitmq_push_queue: str = "push.queue"
-    rabbitmq_failed_queue: str = "failed.queue"
-    rabbitmq_exchange: str = "notifications.direct"
+    rabbitmq_host: str 
+    rabbitmq_port: int 
+    rabbitmq_user: str 
+    rabbitmq_password: str 
+    rabbitmq_vhost: str
+    rabbitmq_push_queue: str 
+    rabbitmq_failed_queue: str
+    rabbitmq_exchange: str 
     
     # Redis Configuration
-    redis_host: str = "localhost"
-    redis_port: int = 6379
-    redis_db: int = 0
-    redis_password: str | None = None
+    redis_host: str 
+    redis_port: int 
+    redis_db: int 
+    redis_password: str
     
     # Firebase Configuration
-    firebase_credentials_path: str = "firebase-credentials.json"
+    firebase_credentials_path: str 
     
     # Circuit Breaker Settings
-    circuit_breaker_failure_threshold: int = 5
-    circuit_breaker_timeout: int = 60  # seconds
-    circuit_breaker_recovery_timeout: int = 30
+    circuit_breaker_failure_threshold: float
+    circuit_breaker_timeout: float
+    circuit_breaker_recovery_timeout:float
     
     # Retry Settings
-    max_retry_attempts: int = 3
-    retry_initial_delay: float = 1.0  # seconds
-    retry_max_delay: float = 60.0  # seconds
-    retry_exponential_base: float = 2.0
+    max_retry_attempts: int 
+    retry_initial_delay: float    # seconds
+    retry_max_delay: float # seconds
+    retry_exponential_base: float 
     
     # Performance Settings
-    max_concurrent_messages: int = 100
-    message_prefetch_count: int = 10
+    max_concurrent_messages: int 
+    message_prefetch_count: int 
     
     # Idempotency
-    idempotency_ttl: int = 86400  # 24 hours in seconds
+    idempotency_ttl: int # 24 hours in seconds
     
     # Logging
-    log_level: str = "INFO"
+    log_level: str 
     
     # Gateway Service URL (for status updates)
-    api_gateway_url: str = "http://localhost:8000"
+    api_gateway_url: str 
     
     class Config:
         env_file = ".env"

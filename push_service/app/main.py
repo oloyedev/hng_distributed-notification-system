@@ -12,6 +12,8 @@ from app.utils.logger import logger
 consumer_thread = None
 
 
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
@@ -39,13 +41,8 @@ async def lifespan(app: FastAPI):
     logger.info("Push Service shut down complete")
 
 
-# Create FastAPI app
-app = FastAPI(
-    title="Push Notification Service",
-    description="Microservice for sending push notifications via Firebase FCM",
-    version=settings.service_version,
-    lifespan=lifespan
-)
+
+
 
 # CORS middleware
 app.add_middleware(

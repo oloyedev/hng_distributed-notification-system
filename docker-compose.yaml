@@ -1,0 +1,176 @@
+version: '3.8'
+
+# Top-level compose for the full distributed notification system.
+# Builds microservices from local folders and provides infra services
+# (RabbitMQ, Redis, Postgres instances for services that need them).
+
+services:
+  api_gateway:
+    build:
+      context: ./api_gateway
+      dockerfile: DOCKERFILE
+    image: api_gateway:local
+    env_file:
+      - ./api_gateway/.env
+    ports:
+      - "3000:3000"
+    command: uvicorn app.core.main:app --host 0.0.0.0 --port 3000 --reload
+    depends_on:
+      - rabbitmq
+      - redis
+      - user_service
+      - template_service
+    networks:
+      - notification_net
+
+  template_service:
+    build:
+      context: ./template_service
+      dockerfile: Dockerfile
+    image: template_service:local
+    env_file:
+      - ./template_service/.env
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://postgres:postgres@postgres_template:5432/template_db"
+      REDIS_HOST: redis
+    ports:
+      - "3002:3002"
+    depends_on:
+      - postgres_template
+      - redis
+    networks:
+      - notification_net
+
+  email_service:
+    build:
+      context: ./email_service
+      dockerfile: Dockerfile
+    image: email_service:local
+    env_file:
+      - ./email_service/.env
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      REDIS_HOST: redis
+      TEMPLATE_SERVICE_URL: http://template_service:3002
+    ports:
+      - "3003:3003"
+    depends_on:
+      - rabbitmq
+      - redis
+      - template_service
+    networks:
+      - notification_net
+
+  push_service:
+    build:
+      context: ./push_service
+      dockerfile: Dockerfile
+    image: push_service:local
+    # If push_service has an .env, add it here. Otherwise it will use defaults in code.
+    # env_file:
+    #   - ./push_service/.env
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      REDIS_HOST: redis
+    ports:
+      - "3004:3004"
+    depends_on:
+      - rabbitmq
+      - redis
+    networks:
+      - notification_net
+
+  user_service:
+    build:
+      context: ./user_service
+      dockerfile: Dockerfile
+    image: user_service:local
+    env_file:
+      - ./user_service/.env
+    environment:
+      DATABASE_URL: "postgresql://postgres:postgres@postgres_user:5432/hng_database"
+    ports:
+      - "8001:8000"
+    depends_on:
+      - postgres_user
+    networks:
+      - notification_net
+
+  # Shared infrastructure
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: notification_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - notification_net
+
+  redis:
+    image: redis:7-alpine
+    container_name: notification_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - notification_net
+
+  postgres_template:
+    image: postgres:15-alpine
+    container_name: postgres_template
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: template_db
+    volumes:
+      - pgdata_template:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - notification_net
+
+  postgres_user:
+    image: postgres:15-alpine
+    container_name: postgres_user
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: hng_database
+    volumes:
+      - pgdata_user:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - notification_net
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+  pgdata_template:
+  pgdata_user:
+
+networks:
+  notification_net:
+    driver: bridge

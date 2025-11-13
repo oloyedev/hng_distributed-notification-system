@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  api_gateway:
+    build:
+      context: .
+      dockerfile: DOCKERFILE
+    image: api_gateway:local
+    container_name: api_gateway
+    env_file:
+      - ./.env
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "3000"
+      RABBITMQ_HOST: "rabbitmq"
+      REDIS_HOST: "redis"
+      USER_SERVICE_URL: "http://user_service:3001"
+      TEMPLATE_SERVICE_URL: "http://template_service:3002"
+    command: uvicorn app.core.main:app --host 0.0.0.0 --port 3000 --reload
+    ports:
+      - "3000:3000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - gateway_net
+    restart: unless-stopped
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: gateway_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: gateway_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gateway_net
+    restart: unless-stopped
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+
+networks:
+  gateway_net:
+    driver: bridge

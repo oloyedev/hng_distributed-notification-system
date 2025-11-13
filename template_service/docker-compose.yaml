@@ -1,0 +1,74 @@
+
+# Docker Compose for Template Service
+# Services: template_service (build), postgres, redis
+version: '3.8'
+
+services:
+  template_service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: template_service:local
+    container_name: template_service
+    env_file:
+      - ./.env
+    environment:
+      # Allow override from .env, but provide defaults when useful
+      HOST: "0.0.0.0"
+      PORT: "3002"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 3002 --reload
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - template_net
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: template_postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: template_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - template_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: template_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - template_net
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+
+networks:
+  template_net:
+    driver: bridge
+
